@@ -16,6 +16,7 @@
     hr { border-color: #3a3a3c; }
     .tabs a { border-color: #3a3a3c; }
     .tabs a:hover { background: #2c2c2e; }
+    .tabs a.active { background: #6cc1a5; border-color: #6cc1a5; color: #1c1c1e; }
   }
   h1 { font-size: 28px; margin-bottom: 4px; }
   h2 { font-size: 20px; margin-top: 32px; }
@@ -23,13 +24,27 @@
   a { color: #2f9e7e; }
   hr { border: none; border-top: 1px solid #e5e5ea; margin: 48px 0; }
   .lang { color: #86868b; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; margin-top: 8px; }
-  .tabs { display: flex; gap: 8px; margin-bottom: 28px; }
+  /* 语言切换：宽屏固定在正文右侧垂直排列（滚动中始终可见），窄屏降级为吸顶横排。 */
+  .tabs {
+    position: fixed; left: calc(50% + 376px); top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px;
+  }
   .tabs a {
     font-size: 13px; padding: 4px 16px; border: 1px solid #e5e5ea; border-radius: 999px;
-    text-decoration: none;
+    text-decoration: none; text-align: center; white-space: nowrap;
   }
   .tabs a:hover { background: #f5f5f7; }
+  .tabs a.active { background: #2f9e7e; border-color: #2f9e7e; color: #fff; }
   section { scroll-margin-top: 16px; }
+  @media (max-width: 979px) {
+    .tabs {
+      position: sticky; top: 0; left: auto; transform: none; flex-direction: row;
+      margin: -16px 0 28px; padding: 12px 0;
+      background: light-dark(rgba(255, 255, 255, .92), rgba(28, 28, 30, .92));
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    section { scroll-margin-top: 64px; }
+  }
 </style>
 </head>
 <body>
@@ -99,5 +114,20 @@
 <p>Questions about this policy: <a href="mailto:hornjoystudio@gmail.com">hornjoystudio@gmail.com</a></p>
 </section>
 
+<script>
+(() => {
+  const links = document.querySelectorAll(".tabs a");
+  const sections = [...document.querySelectorAll("section[id]")];
+  const update = () => {
+    let current = sections[0]?.id;
+    for (const s of sections) {
+      if (s.getBoundingClientRect().top <= 90) current = s.id;
+    }
+    links.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + current));
+  };
+  addEventListener("scroll", update, { passive: true });
+  update();
+})();
+</script>
 </body>
 </html>
