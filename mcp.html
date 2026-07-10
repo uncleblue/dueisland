@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP Setup Guide — DueIsland</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", sans-serif;
+    max-width: 720px; margin: 0 auto; padding: 48px 24px; color: #1d1d1f; background: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #f5f5f7; background: #1c1c1e; }
+    a { color: #6cc1a5; }
+    hr { border-color: #3a3a3c; }
+    pre, code { background: #2c2c2e; }
+    th, td { border-color: #3a3a3c; }
+  }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  h2 { font-size: 20px; margin-top: 32px; }
+  h3 { font-size: 16px; margin-top: 24px; }
+  .date { color: #86868b; font-size: 14px; }
+  a { color: #2f9e7e; }
+  hr { border: none; border-top: 1px solid #e5e5ea; margin: 48px 0; }
+  .lang { color: #86868b; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; margin-top: 8px; }
+  pre {
+    background: #f5f5f7; padding: 12px 14px; border-radius: 8px; overflow-x: auto;
+    font: 13px/1.6 ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  code { background: #f5f5f7; padding: 1px 5px; border-radius: 4px; font: 13px ui-monospace, "SF Mono", Menlo, monospace; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid #e5e5ea; padding: 8px 10px; text-align: left; vertical-align: top; }
+</style>
+</head>
+<body>
+
+<p class="lang">English</p>
+<h1>MCP Setup Guide</h1>
+<p class="date">DueIsland · Connect any AI client to your reminders</p>
+
+<p>DueIsland ships with a built-in local <a href="https://modelcontextprotocol.io/">MCP</a> server, so any MCP-capable AI client (Claude Code, Claude Desktop, Cursor, Codex, VS Code, and more) can create, list, update, complete, snooze, and delete your reminders. Changes show up instantly in the notch and the main window.</p>
+
+<h2>Enable</h2>
+<ol>
+  <li>Open DueIsland ▸ <strong>Settings</strong> ▸ <strong>MCP Server</strong> and turn on the switch.</li>
+  <li>Copy the <strong>URL</strong> and the <strong>auth header</strong> shown in Settings (unique per device; resetting the token invalidates old configs).</li>
+</ol>
+<p>The server only listens on <code>127.0.0.1</code> (your Mac, plain HTTP — loopback traffic never leaves the machine and public CAs don't issue certificates for localhost, so HTTPS is neither possible nor needed here) and requires <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+
+<h2>Universal connection info</h2>
+<p>Every client needs just these two values:</p>
+<table>
+  <tr><th>Field</th><th>Value</th></tr>
+  <tr><td>URL</td><td><code>http://127.0.0.1:&lt;PORT&gt;/mcp</code></td></tr>
+  <tr><td>Header</td><td><code>Authorization: Bearer &lt;TOKEN&gt;</code></td></tr>
+  <tr><td>Transport</td><td>Streamable HTTP</td></tr>
+</table>
+<p><code>&lt;PORT&gt;</code> defaults to <code>51837</code>; if occupied, DueIsland automatically moves to the next free port — <strong>always use the URL shown in Settings</strong>. Copy <code>&lt;TOKEN&gt;</code> from Settings. Prefer <code>127.0.0.1</code> over <code>localhost</code>: some clients resolve <code>localhost</code> to IPv6 <code>::1</code>, which the server does not bind.</p>
+
+<h2>Client configuration</h2>
+
+<h3>Claude Code</h3>
+<pre><code>claude mcp add --transport http dueisland http://127.0.0.1:&lt;PORT&gt;/mcp \
+  --header "Authorization: Bearer &lt;TOKEN&gt;"</code></pre>
+<p>Verify with <code>claude mcp list</code> or <code>/mcp</code> inside a session.</p>
+
+<h3>Cursor</h3>
+<p><code>~/.cursor/mcp.json</code> (global) or <code>.cursor/mcp.json</code> in a project:</p>
+<pre><code>{
+  "mcpServers": {
+    "dueisland": {
+      "url": "http://127.0.0.1:&lt;PORT&gt;/mcp",
+      "headers": { "Authorization": "Bearer &lt;TOKEN&gt;" }
+    }
+  }
+}</code></pre>
+
+<h3>Claude Desktop</h3>
+<p><code>claude_desktop_config.json</code> (Settings ▸ Developer ▸ Edit Config):</p>
+<pre><code>{
+  "mcpServers": {
+    "dueisland": {
+      "url": "http://127.0.0.1:&lt;PORT&gt;/mcp",
+      "headers": { "Authorization": "Bearer &lt;TOKEN&gt;" }
+    }
+  }
+}</code></pre>
+
+<h3>OpenAI Codex</h3>
+<p><strong>Desktop app:</strong> fill in the “Headers” field directly — no environment variables needed:</p>
+<ul>
+  <li>URL: <code>http://127.0.0.1:&lt;PORT&gt;/mcp</code></li>
+  <li>Header key <code>Authorization</code>, value <code>Bearer &lt;TOKEN&gt;</code></li>
+  <li>Leave “Bearer token environment variable” empty</li>
+</ul>
+<p><strong>CLI / config.toml:</strong> Codex references the token via an environment variable name:</p>
+<pre><code>export DUEISLAND_TOKEN="&lt;TOKEN&gt;"</code></pre>
+<pre><code>[mcp_servers.dueisland]
+url = "http://127.0.0.1:&lt;PORT&gt;/mcp"
+bearer_token_env_var = "DUEISLAND_TOKEN"</code></pre>
+<p>Note: desktop GUI apps usually can’t read variables exported in your shell — prefer the Headers method in the GUI.</p>
+
+<h3>VS Code (GitHub Copilot, Continue, …)</h3>
+<p><code>.vscode/mcp.json</code> (note the outer key is <code>servers</code> and <code>type</code> is required):</p>
+<pre><code>{
+  "servers": {
+    "dueisland": {
+      "type": "http",
+      "url": "http://127.0.0.1:&lt;PORT&gt;/mcp",
+      "headers": { "Authorization": "Bearer &lt;TOKEN&gt;" }
+    }
+  }
+}</code></pre>
+
+<h2>Available tools</h2>
+<table>
+  <tr><th>Tool</th><th>Arguments</th><th>Description</th></tr>
+  <tr><td><code>create_reminder</code></td><td><code>title</code> (required), <code>kind</code> (timer|reminder), <code>minutes</code>, <code>at</code> (ISO8601), <code>recur</code> (none|daily|weekdays|weekly|monthly), <code>notes</code></td><td>Create a reminder or timer. When <code>kind</code> is omitted it is inferred: <code>at</code>→reminder, <code>minutes</code>→timer.</td></tr>
+  <tr><td><code>list_reminders</code></td><td><code>includeCompleted</code> (bool, default false)</td><td>List reminders with their ids for follow-up calls.</td></tr>
+  <tr><td><code>update_reminder</code></td><td><code>id</code> (required), <code>title</code>, <code>minutes</code>, <code>at</code>, <code>recur</code>, <code>notes</code></td><td>Partial update — only provided fields change. Time via <code>at</code> (reminder only) or <code>minutes</code>, not both. Editing a completed item reactivates it.</td></tr>
+  <tr><td><code>complete_reminder</code></td><td><code>id</code></td><td>Mark complete.</td></tr>
+  <tr><td><code>snooze_reminder</code></td><td><code>id</code>, <code>minutes</code> (default 10)</td><td>Postpone.</td></tr>
+  <tr><td><code>delete_reminder</code></td><td><code>id</code></td><td>Delete.</td></tr>
+</table>
+
+<h2>Security notes</h2>
+<ul>
+  <li>The server binds <code>127.0.0.1</code> only — it is unreachable from your network or the internet.</li>
+  <li>Only requests carrying the correct <code>Authorization: Bearer &lt;token&gt;</code> are accepted, blocking other local processes.</li>
+  <li>After “Reset token”, reconfigure every client with the new token.</li>
+  <li>If the port auto-moves, use the URL shown in Settings and reconfigure once.</li>
+  <li>Turn the switch off in Settings to stop listening entirely.</li>
+</ul>
+
+<p>Questions: <a href="mailto:hornjoystudio@gmail.com">hornjoystudio@gmail.com</a></p>
+
+<hr>
+
+<p class="lang">中文</p>
+<h1>MCP 接入指南</h1>
+<p class="date">DueIsland · 让任意 AI 客户端管理你的提醒</p>
+
+<p>DueIsland 内置本地 <a href="https://modelcontextprotocol.io/">MCP</a> 服务，任何支持 MCP 的 AI 客户端（Claude Code、Claude Desktop、Cursor、Codex、VS Code 等）都能创建、查询、修改、完成、延迟、删除你的提醒，改动实时反映到刘海与主窗口。</p>
+
+<h2>开启</h2>
+<ol>
+  <li>打开 DueIsland ▸ <strong>设置</strong> ▸ <strong>MCP 服务</strong>，打开开关。</li>
+  <li>复制设置页显示的<strong>地址</strong>与<strong>鉴权头</strong>（每台设备唯一，重置 token 后旧配置失效）。</li>
+</ol>
+<p>服务只监听 <code>127.0.0.1</code>（本机，纯 HTTP——回环流量不出本机，且公共 CA 不给 localhost 签发证书，此处 HTTPS 既不可行也无必要），并要求 <code>Authorization: Bearer &lt;token&gt;</code> 鉴权。</p>
+
+<h2>通用连接信息</h2>
+<p>任何客户端只需这两项：</p>
+<table>
+  <tr><th>项</th><th>值</th></tr>
+  <tr><td>地址 URL</td><td><code>http://127.0.0.1:&lt;PORT&gt;/mcp</code></td></tr>
+  <tr><td>鉴权头 Header</td><td><code>Authorization: Bearer &lt;TOKEN&gt;</code></td></tr>
+  <tr><td>传输 Transport</td><td>Streamable HTTP</td></tr>
+</table>
+<p><code>&lt;PORT&gt;</code> 默认 <code>51837</code>；若被占用，服务会自动顺延到下一个可用端口，<strong>以设置页显示的地址为准</strong>。<code>&lt;TOKEN&gt;</code> 从设置页复制。请用 <code>127.0.0.1</code> 而非 <code>localhost</code>：部分客户端会把 <code>localhost</code> 解析成 IPv6 的 <code>::1</code>，服务未绑定该地址。</p>
+
+<h2>各客户端配置</h2>
+
+<h3>Claude Code</h3>
+<pre><code>claude mcp add --transport http dueisland http://127.0.0.1:&lt;PORT&gt;/mcp \
+  --header "Authorization: Bearer &lt;TOKEN&gt;"</code></pre>
+<p>验证：<code>claude mcp list</code>，或在会话里输入 <code>/mcp</code>。</p>
+
+<h3>Cursor</h3>
+<p><code>~/.cursor/mcp.json</code>（全局）或项目内 <code>.cursor/mcp.json</code>：</p>
+<pre><code>{
+  "mcpServers": {
+    "dueisland": {
+      "url": "http://127.0.0.1:&lt;PORT&gt;/mcp",
+      "headers": { "Authorization": "Bearer &lt;TOKEN&gt;" }
+    }
+  }
+}</code></pre>
+
+<h3>Claude Desktop</h3>
+<p><code>claude_desktop_config.json</code>（设置 ▸ Developer ▸ Edit Config）：</p>
+<pre><code>{
+  "mcpServers": {
+    "dueisland": {
+      "url": "http://127.0.0.1:&lt;PORT&gt;/mcp",
+      "headers": { "Authorization": "Bearer &lt;TOKEN&gt;" }
+    }
+  }
+}</code></pre>
+
+<h3>OpenAI Codex</h3>
+<p><strong>桌面版（图形界面）</strong>最省事的是直接填「标头 / Headers」，不碰环境变量：</p>
+<ul>
+  <li>URL：<code>http://127.0.0.1:&lt;PORT&gt;/mcp</code></li>
+  <li>标头 键 <code>Authorization</code>，值 <code>Bearer &lt;TOKEN&gt;</code></li>
+  <li>「Bearer 令牌环境变量」留空</li>
+</ul>
+<p><strong>CLI / config.toml</strong>：Codex 用环境变量名传 token（不是明文）：</p>
+<pre><code>export DUEISLAND_TOKEN="&lt;TOKEN&gt;"</code></pre>
+<pre><code>[mcp_servers.dueisland]
+url = "http://127.0.0.1:&lt;PORT&gt;/mcp"
+bearer_token_env_var = "DUEISLAND_TOKEN"</code></pre>
+<p>注意：桌面 GUI 应用通常读不到 shell 里 export 的环境变量，图形界面优先用上面的「标头」法。</p>
+
+<h3>VS Code（GitHub Copilot / Continue 等）</h3>
+<p><code>.vscode/mcp.json</code>（注意外层是 <code>servers</code> 且需 <code>type</code>）：</p>
+<pre><code>{
+  "servers": {
+    "dueisland": {
+      "type": "http",
+      "url": "http://127.0.0.1:&lt;PORT&gt;/mcp",
+      "headers": { "Authorization": "Bearer &lt;TOKEN&gt;" }
+    }
+  }
+}</code></pre>
+
+<h2>可用工具</h2>
+<table>
+  <tr><th>工具</th><th>参数</th><th>说明</th></tr>
+  <tr><td><code>create_reminder</code></td><td><code>title</code>（必填）、<code>kind</code>(timer|reminder)、<code>minutes</code>、<code>at</code>(ISO8601)、<code>recur</code>(none|daily|weekdays|weekly|monthly)、<code>notes</code></td><td>建提醒/计时器。省略 <code>kind</code> 时按 <code>at</code>→reminder、<code>minutes</code>→timer 推断。</td></tr>
+  <tr><td><code>list_reminders</code></td><td><code>includeCompleted</code>(bool，默认 false)</td><td>列出提醒（含 id，供后续按 id 操作）。</td></tr>
+  <tr><td><code>update_reminder</code></td><td><code>id</code>（必填）、<code>title</code>、<code>minutes</code>、<code>at</code>、<code>recur</code>、<code>notes</code></td><td>部分更新——只改传入的字段。时间用 <code>at</code>（仅 reminder）或 <code>minutes</code> 二选一。编辑已完成条目会将其复活。</td></tr>
+  <tr><td><code>complete_reminder</code></td><td><code>id</code></td><td>标记完成。</td></tr>
+  <tr><td><code>snooze_reminder</code></td><td><code>id</code>、<code>minutes</code>（默认 10）</td><td>延迟。</td></tr>
+  <tr><td><code>delete_reminder</code></td><td><code>id</code></td><td>删除。</td></tr>
+</table>
+
+<h2>安全说明</h2>
+<ul>
+  <li>服务只绑 <code>127.0.0.1</code>，局域网/公网不可访问。</li>
+  <li>只有携带正确 <code>Authorization: Bearer &lt;token&gt;</code> 的请求被接受，挡掉同机其它进程。</li>
+  <li>「重置 token」后，所有已配置的客户端需用新 token 重新配置。</li>
+  <li>端口被占用自动顺延时，以设置页显示的地址为准，重新配置一次即可。</li>
+  <li>不用时在设置页关闭开关即停止监听。</li>
+</ul>
+
+<p>问题反馈：<a href="mailto:hornjoystudio@gmail.com">hornjoystudio@gmail.com</a></p>
+
+</body>
+</html>
