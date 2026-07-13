@@ -70,14 +70,13 @@
 <h1>MCP 接入指南</h1>
 <p class="date">DueIsland · 让任意 AI 客户端管理你的提醒</p>
 
-<p>DueIsland 内置本地 <a href="https://modelcontextprotocol.io/">MCP</a> 服务，任何支持 MCP 的 AI 客户端（Claude Code、Claude Desktop、Cursor、Codex、VS Code 等）都能创建、查询、修改、完成、延迟、删除你的提醒，改动实时反映到刘海与主窗口。</p>
+<p>DueIsland 内置本地 <a href="https://modelcontextprotocol.io/">MCP</a> 服务，任何支持 MCP 的 AI 客户端（Claude Code、Claude Desktop、Cursor、Codex、VS Code 等）都能创建、查询、修改、完成、延迟、删除你的提醒，改动实时同步。</p>
 
 <h2>开启</h2>
 <ol>
   <li>打开 DueIsland ▸ <strong>设置</strong> ▸ <strong>MCP 服务</strong>，打开开关。</li>
   <li>复制设置页显示的<strong>地址</strong>与<strong>鉴权头</strong>（每台设备唯一，重置 token 后旧配置失效）。</li>
 </ol>
-<p>服务只监听 <code>127.0.0.1</code>（本机，纯 HTTP——回环流量不出本机，且公共 CA 不给 localhost 签发证书，此处 HTTPS 既不可行也无必要），并要求 <code>Authorization: Bearer &lt;token&gt;</code> 鉴权。</p>
 
 <h2>通用连接信息</h2>
 <p>任何客户端只需这两项：</p>
@@ -87,9 +86,9 @@
   <tr><td>鉴权头 Header</td><td><code>Authorization: Bearer &lt;TOKEN&gt;</code></td></tr>
   <tr><td>传输 Transport</td><td>Streamable HTTP</td></tr>
 </table>
-<p><code>&lt;PORT&gt;</code> 默认 <code>51837</code>；若被占用，服务会自动顺延到下一个可用端口，<strong>以设置页显示的地址为准</strong>。<code>&lt;TOKEN&gt;</code> 从设置页复制。请用 <code>127.0.0.1</code> 而非 <code>localhost</code>：部分客户端会把 <code>localhost</code> 解析成 IPv6 的 <code>::1</code>，服务未绑定该地址。</p>
+<p><code>&lt;PORT&gt;</code> 默认 <code>51837</code>；若被占用，服务会自动顺延到下一个可用端口，<strong>以设置页显示的地址为准</strong>。<code>&lt;TOKEN&gt;</code> 从设置页复制。</p>
 
-<h2>各客户端配置</h2>
+<h2>部分客户端配置示例</h2>
 
 <h3>Claude Code</h3>
 <pre><code>claude mcp add --transport http dueisland http://127.0.0.1:&lt;PORT&gt;/mcp \
@@ -130,9 +129,8 @@
 <pre><code>[mcp_servers.dueisland]
 url = "http://127.0.0.1:&lt;PORT&gt;/mcp"
 bearer_token_env_var = "DUEISLAND_TOKEN"</code></pre>
-<p>注意：桌面 GUI 应用通常读不到 shell 里 export 的环境变量，图形界面优先用上面的「标头」法。</p>
 
-<h3>VS Code（GitHub Copilot / Continue 等）</h3>
+<h3>VS Code</h3>
 <p><code>.vscode/mcp.json</code>（注意外层是 <code>servers</code> 且需 <code>type</code>）：</p>
 <pre><code>{
   "servers": {
@@ -154,15 +152,6 @@ bearer_token_env_var = "DUEISLAND_TOKEN"</code></pre>
   <tr><td><code>snooze_reminder</code></td><td><code>id</code>、<code>minutes</code>（默认 10）</td><td>延迟。</td></tr>
   <tr><td><code>delete_reminder</code></td><td><code>id</code></td><td>删除。</td></tr>
 </table>
-
-<h2>安全说明</h2>
-<ul>
-  <li>服务只绑 <code>127.0.0.1</code>，局域网/公网不可访问。</li>
-  <li>只有携带正确 <code>Authorization: Bearer &lt;token&gt;</code> 的请求被接受，挡掉同机其它进程。</li>
-  <li>「重置 token」后，所有已配置的客户端需用新 token 重新配置。</li>
-  <li>端口被占用自动顺延时，以设置页显示的地址为准，重新配置一次即可。</li>
-  <li>不用时在设置页关闭开关即停止监听。</li>
-</ul>
 
 <p>问题反馈：<a href="mailto:hornjoystudio@gmail.com">hornjoystudio@gmail.com</a></p>
 </section>
